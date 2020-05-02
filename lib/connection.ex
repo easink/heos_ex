@@ -25,19 +25,19 @@ defmodule Heos.Connection do
   #  Setup
   #
 
-  def start_link(opts) when is_list(opts) do
-    case Keyword.fetch(opts, :name) do
+  def start_link(args) when is_list(args) do
+    case Keyword.fetch(args, :name) do
       :error ->
-        :gen_statem.start_link(__MODULE__, opts, [])
+        :gen_statem.start_link(__MODULE__, args, [])
 
       {:ok, atom} when is_atom(atom) ->
-        :gen_statem.start_link({:local, atom}, __MODULE__, opts, [])
+        :gen_statem.start_link({:local, atom}, __MODULE__, args, [])
 
       {:ok, {:global, _term} = tuple} ->
-        :gen_statem.start_link(tuple, __MODULE__, opts, [])
+        :gen_statem.start_link(tuple, __MODULE__, args, [])
 
       {:ok, {:via, via_module, _term} = tuple} when is_atom(via_module) ->
-        :gen_statem.start_link(tuple, __MODULE__, opts, [])
+        :gen_statem.start_link(tuple, __MODULE__, args, [])
 
       {:ok, other} ->
         raise ArgumentError, """
@@ -55,10 +55,10 @@ defmodule Heos.Connection do
     :gen_statem.stop(conn, :normal, timeout)
   end
 
-  def child_spec(opts) do
+  def child_spec(args) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
+      start: {__MODULE__, :start_link, [args]},
       type: :worker,
       restart: :permanent,
       shutdown: 5000
@@ -114,8 +114,8 @@ defmodule Heos.Connection do
   # end
 
   @impl true
-  def init(opts) do
-    host = Keyword.get(opts, :host, nil)
+  def init(args) do
+    host = Keyword.get(args, :host, nil)
 
     host =
       cond do
@@ -124,9 +124,11 @@ defmodule Heos.Connection do
         true -> nil
       end
 
-    port = Keyword.get(opts, :port, @port)
+    port = Keyword.get(args, :port, @port)
 
     Process.flag(:trap_exit, true)
+
+    Registry.start_link(keys: :duplicate, name: Heos.Events)
 
     {:ok, :disconnected,
      %{

@@ -17,38 +17,26 @@ defmodule Heos do
   #           socket: nil,
   #           pid: nil
 
-  # @type socket :: :gen_tcp.socket()
-  # @type socket :: :inet.socket()
-
-  # @type host_address :: :inet.socket_address() | :inet.hostname()
-  # @type host_port :: :inet.port_number()
-
-  # @type t :: %__MODULE__{
-  #         active_player: %Player{},
-  #         socket: socket,
-  #         pid: pid()
-  #       }
-
   #
   # API
   #
 
+  defdelegate start_link(args), to: Heos.Connection
+  defdelegate connect(conn), to: Heos.Connection
+  defdelegate subscribe(), to: Heos.Events
+  defdelegate discover(), to: Heos.Discover
+
   @spec simple() :: {:ok, conn}
   def simple() do
-    conn = Heos.Connection
-    {:ok, ip} = Heos.Discover.discover()
-    {:ok, _pid} = Heos.Supervisor.start_link(host: ip, name: conn)
-    :ok = Heos.Connection.connect(conn)
+    conn = :heos
+    {:ok, ip} = Heos.discover()
+    {:ok, _pid} = Heos.start_link(host: ip, name: conn)
+    :ok = Heos.connect(conn)
     {:ok, :off} = Heos.Commands.System.prettify_json_response(conn, :off)
     :ok = Heos.Commands.System.heart_beat(conn)
     {:ok, :on} = Heos.Commands.System.register_for_change_events(conn, :on)
     {:ok, conn}
   end
-
-  defdelegate start_link(args), to: Heos.Supervisor
-  defdelegate connect(conn), to: Heos.Connection
-  defdelegate subscribe(), to: Heos.Events
-  defdelegate discover(), to: Heos.Discover
 
   def watch() do
     {:ok, conn} = simple()

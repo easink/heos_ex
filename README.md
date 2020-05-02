@@ -16,7 +16,7 @@ end
 
 ## Usage
 
-    {:ok, conn} = Heos.Supervisor.start_link(host: "192.168.0.1")
+    {:ok, conn} = Heos.start_link(host: "192.168.0.1")
     Heos.connect(conn)
     Heos.subscribe()
     Heos.Commands.Player.get_players(conn)
