@@ -1,0 +1,124 @@
+defmodule Heos.Events do
+  @moduledoc false
+
+  @topic "events"
+
+  @type conn :: pid() | atom
+
+  alias Heos.Response
+
+  @spec subscribe() :: {:ok, conn()} | {:error, {:already_registered, conn()}}
+  def subscribe() do
+    Registry.register(Heos.Events, @topic, [])
+  end
+
+  @spec publish(map) :: :ok
+  def publish(%{command: "event/" <> command} = event) do
+    event = %{event | command: command}
+
+    Registry.dispatch(Heos.Events, @topic, fn entries ->
+      for {pid, _} <- entries, do: send(pid, {:event, event})
+    end)
+  end
+
+  @spec publish(String.t(), String.t()) :: :ok
+  def publish("event/sources_changed" = command, _message),
+    do: publish(%{command: command})
+
+  def publish("event/players_changed" = command, _message),
+    do: publish(%{command: command})
+
+  def publish("event/groups_changed" = command, _message),
+    do: publish(%{command: command})
+
+  def publish("event/player_state_changed" = command, message) do
+    message
+    |> Response.parse_message(pid: :number, state: [:play, :pause, :stop])
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/player_now_playing_changed" = command, message) do
+    message
+    |> Response.parse_message(pid: :number)
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/player_now_playing_progress" = command, message) do
+    message
+    |> Response.parse_message(pid: :number, cur_pos: :number, duration: :number)
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/player_playback_error" = command, message) do
+    message
+    |> Response.parse_message(pid: :number, error: :string)
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/player_queue_changed" = command, message) do
+    message
+    |> Response.parse_message(pid: :number)
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/player_volume_changed" = command, message) do
+    message
+    |> Response.parse_message(pid: :number, level: :number, mute: [:on, :off])
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/repeat_mode_changed" = command, message) do
+    message
+    |> Response.parse_message(pid: :number, repeat: [:all, :one, :off])
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/shuffle_mode_changed" = command, message) do
+    message
+    |> Response.parse_message(pid: :number, shuffle: [:on, :off])
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/group_volume_changed" = command, message) do
+    message
+    |> Response.parse_message(pid: :number, level: :number, mute: [:on, :off])
+    |> Map.put(:command, command)
+    |> publish()
+  end
+
+  def publish("event/user_changed" = command, message) do
+    event =
+      message
+      |> Response.parse_message(un: :string)
+      |> Map.put(:command, command)
+
+    message_keys = message |> Response.parse_message() |> Map.keys()
+
+    command =
+      cond do
+        "signed_in" in message_keys ->
+          "event/user_signed_in"
+
+        "signed_out" in message_keys ->
+          "event/user_signed_out"
+
+        true ->
+          raise RuntimeError, message: "event/user_changed must have signed_in or signed_out."
+      end
+
+    publish(%{event | command: command})
+  end
+
+  def publish(command, message) do
+    require Logger
+    Logger.error("Could not publish event: #{command}, #{inspect(message)}")
+  end
+end
