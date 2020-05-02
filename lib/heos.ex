@@ -48,6 +48,7 @@ defmodule Heos do
   defdelegate start_link(args), to: Heos.Supervisor
   defdelegate connect(conn), to: Heos.Connection
   defdelegate subscribe(), to: Heos.Events
+  defdelegate discover(), to: Heos.Discover
 
   def watch() do
     {:ok, conn} = simple()
