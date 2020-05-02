@@ -20,8 +20,8 @@ defmodule Heos.Commands.PlayerTest do
     test "get them all", ctx do
       assert Player.get_players(ctx.conn) ==
                {:ok,
-                [
-                  %{
+                %{
+                  1 => %{
                     "name" => "player name 1",
                     "pid" => 1,
                     "gid" => "group id",
@@ -32,7 +32,7 @@ defmodule Heos.Commands.PlayerTest do
                     "control" => "control option",
                     "serial" => "serial number"
                   },
-                  %{
+                  2 => %{
                     "name" => "player name 2",
                     "pid" => 2,
                     "gid" => "group id",
@@ -43,7 +43,7 @@ defmodule Heos.Commands.PlayerTest do
                     "control" => "control option",
                     "serial" => "serial number"
                   }
-                ]}
+                }}
     end
   end
 

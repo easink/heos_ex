@@ -31,12 +31,18 @@ defmodule Heos.Commands.Player do
 
 
   """
-  @spec get_players(conn) :: {:ok, list(map)} | {:error, term}
+  @spec get_players(conn) :: {:ok, map} | {:error, term}
   def get_players(conn) do
     # {:ok, resp} -> {:ok, Enum.map(resp.payload, &Util.to_struct(Player, &1))}
 
-    with {:ok, response} <- Command.request(conn, @command),
-         do: {:ok, response.payload}
+    with {:ok, response} <- Command.request(conn, @command) do
+      players =
+        for player <- response.payload, into: %{} do
+          {player["pid"], player}
+        end
+
+      {:ok, players}
+    end
   end
 
   #########
