@@ -231,14 +231,13 @@ defmodule Heos.Connection do
         :gen_statem.reply(data.request_from, {:ok, response})
         {:keep_state, %{data | request_from: nil, command_in_flight: nil}}
 
-      {:ok, %Response{command: command, message: message} = response} ->
+      {:ok, %Response{command: "event/" <> command, message: message} = response} ->
+        Logger.debug(fn -> "RESPONSE, #{inspect(response)}, EVENT" end)
+        Events.publish(command, message)
+        :keep_state_and_data
+
+      {:ok, %Response{} = response} ->
         Logger.debug(fn -> "RESPONSE, #{inspect(response)}, NOT IN FLIGHT, still waiting..." end)
-
-        if String.starts_with?(command, "event/") do
-          Events.publish(command, message)
-          # Logger.info("EVENT #{command}, will notify subscribers")
-        end
-
         # :gen_statem.reply(data.request_from, {:error, :not_command_in_flight})
         :keep_state_and_data
 
